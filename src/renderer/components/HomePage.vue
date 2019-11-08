@@ -13,11 +13,6 @@
               <el-form-item v-for="item in formList" :key="item.index" :label="item.label" :prop="item.prop">
                 <el-input type="number" v-model="postForm[item.prop]"></el-input>
               </el-form-item>
-              <el-form-item>
-                <el-button type="success" @click="handleCalculate('postForm')">
-                  进行评估
-                </el-button>
-              </el-form-item>
             </el-form>
           </el-card>
         </el-col>
@@ -44,18 +39,23 @@
                 </div>
               </div>
               <el-divider></el-divider>
-              <div class="item label">故障类型： {{wrongType['type']}}</div>
-              <el-card class="box-card" shadow="hover" style="height:100px;color:#333">
+              <div class="item label">故障类型： {{wrongType['type']}} &nbsp;
+                {{powerErrorType.flag ? powerErrorType.type : ''}} &nbsp;
+                {{pressureErrorType.flag > 0 ? pressureErrorType.error[pressureErrorType.flag].type : ''}}
+              </div>
+              <el-card class="box-card" shadow="hover">
                 {{wrongType['description']}}
               </el-card>
+              <el-card v-if="powerErrorType.flag" class="box-card" shadow="hover">
+                {{ powerErrorType.description }}
+              </el-card>
+              <el-card v-if="pressureErrorType.flag > 0" class="box-card" shadow="hover">
+                {{ pressureErrorType.error[pressureErrorType.flag].description }}
+              </el-card>
               <el-divider></el-divider>
-              <div class="item">
-                <div class="label">
-                  评估进度
-                </div>
-                <el-progress :text-inside="true"
-                             :stroke-width="24" :percentage="100" status="success"></el-progress>
-              </div>
+              <el-button type="success" @click="handleCalculate('postForm')">
+                进行评估
+              </el-button>
             </div>
           </el-card>
         </el-col>
@@ -211,26 +211,26 @@
           {
             label: 'CO2',
             prop: 'co2'
-          // },
-          // {
-          //   label: '压力',
-          //   prop: 'pressure'
-          // },
-          // {
-          //   label: '局部放电量',
-          //   prop: 'power'
+          },
+          {
+            label: '压力',
+            prop: 'pressure'
+          },
+          {
+            label: '局部放电量',
+            prop: 'power'
           }
         ],
         postForm: {
-          h2: 49,
-          ch4: 58,
-          c2h6: 7,
-          c2h4: 8,
-          c2h2: 5,
+          h2: 200,
+          ch4: 60,
+          c2h6: 50,
+          c2h4: 50,
+          c2h2: 10,
           co: 1644,
-          co2: 2617
-          // pressure: null,
-          // power: null
+          co2: 2617,
+          pressure: 170000,
+          power: 0
         },
         postRules: {},
         deviceState: {
@@ -244,6 +244,29 @@
         wrongType: {
           type: '',
           description: ''
+        },
+        powerErrorType: {
+          // false: 局部放电量正常，true: 局部放电量异常
+          flag: false,
+          type: '局部放电',
+          description: '高温、气隙、毛刺、漆瘤、杂质等所引起的低能量密度的放电'
+        },
+        pressureErrorType: {
+          flag: 0, // 0: 压力正常， 1: 压力漏油异常，2: 压力内部放电异常
+          error: [
+            {
+              type: '',
+              description: ''
+            },
+            {
+              type: '漏油报警',
+              description: '漏油报警漏油报警漏油报警'
+            },
+            {
+              type: '内部放电报警',
+              description: '内部放电报警内部放电报警内部放电报警'
+            }
+          ]
         }
       }
     },
@@ -298,9 +321,9 @@
       },
       handleEstimate () {
         // a = C2H2/C2H4, b = CH4/H2, c = C2H4/C2H6
-        let a = this.c2h2 / this.c2h4
-        let b = this.ch4 / this.h2
-        let c = this.c2h4 / this.c2h6
+        let a = this.postForm.c2h2 / this.postForm.c2h4
+        let b = this.postForm.ch4 / this.postForm.h2
+        let c = this.postForm.c2h4 / this.postForm.c2h6
         if (a < 0.1) {
           a = 0
         } else if (a < 3) {
@@ -322,8 +345,36 @@
         } else {
           c = 2
         }
+        console.log(a, ' ', b, ' ', c)
         console.log(this.estimateMap[a][b][c])
         this.wrongType = this.estimateMap[a][b][c]
+        // 局部放电量判据 + 压力判据
+        if (this.postForm.power > 20) {
+          this.powerErrorType.flag = true
+          // 如果 deviceStateValue < 3（异常），仍显示异常
+          if (this.deviceStateValue < 3) {
+            this.deviceStateValue = 3
+          }
+        } else {
+          this.powerErrorType.flag = false
+        }
+        if (this.postForm.pressure < 169925) {
+          // 漏油报警
+          this.pressureErrorType.flag = 1
+          // 如果 deviceStateValue < 3（异常），仍显示异常
+          if (this.deviceStateValue < 3) {
+            this.deviceStateValue = 3
+          }
+        } else if (this.postForm.pressure > 177425) {
+          // 内部放电报警
+          this.pressureErrorType.flag = 2
+          // 如果 deviceStateValue < 3（异常），仍显示异常
+          if (this.deviceStateValue < 3) {
+            this.deviceStateValue = 3
+          }
+        } else {
+          this.pressureErrorType.flag = 0
+        }
       }
     }
   }
@@ -352,6 +403,11 @@
       .el-tag{
         font-size: 16px!important;
       }
+    }
+    .el-card{
+      margin: 5px 0;
+      height:fit-content;
+      color:#333;
     }
     .el-row{
       height: calc(100% - 150px) !important;

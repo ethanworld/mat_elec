@@ -45,7 +45,8 @@ function Matlab () {
     }
     let arr = jsonStr.split(',')
     console.log(input)
-    for (let i = 0; i < arr.length; i++) {
+    // for (let i = 0; i < arr.length; i++) {
+    for (let i = 0; i < 7; i++) {
       input[i] = arr[i]
     }
     console.log(input)
