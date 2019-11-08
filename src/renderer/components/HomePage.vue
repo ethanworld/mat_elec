@@ -43,7 +43,7 @@
                 {{powerErrorType.flag ? powerErrorType.type : ''}} &nbsp;
                 {{pressureErrorType.flag > 0 ? pressureErrorType.error[pressureErrorType.flag].type : ''}}
               </div>
-              <el-card class="box-card" shadow="hover">
+              <el-card v-if="wrongType.flag"  class="box-card" shadow="hover">
                 {{wrongType['description']}}
               </el-card>
               <el-card v-if="powerErrorType.flag" class="box-card" shadow="hover">
@@ -242,6 +242,7 @@
         deviceStateValue: 0,
         deviceStateValueAccurate: 0,
         wrongType: {
+          flag: true,
           type: '',
           description: ''
         },
@@ -259,12 +260,12 @@
               description: ''
             },
             {
-              type: '漏油报警',
-              description: '漏油报警漏油报警漏油报警'
+              type: '油位异常',
+              description: '电流互感器渗漏多发生在密封胶垫处，主要是由密封垫老化龟裂引起的。密封胶垫质量的好坏主要取决于它的耐油性能，耐油性能较差的，老化速度就较快，密封垫一旦老化龟裂，就造成电流互感器渗漏油'
             },
             {
-              type: '内部放电报警',
-              description: '内部放电报警内部放电报警内部放电报警'
+              type: '油位异常',
+              description: '电流互感的内部绝缘的降低，从而导致初级侧绕组到次级侧绕组以及铁芯中断放电'
             }
           ]
         }
@@ -315,7 +316,6 @@
           }
         }
         let input = (temp.substring(temp.length - 1) === ',') ? temp.substring(0, temp.length - 1) : temp
-        console.log(input)
         this.$electron.ipcRenderer.send('calculate', input)
         // this.$electron.shell.openExternal(link)
       },
@@ -345,9 +345,11 @@
         } else {
           c = 2
         }
-        console.log(a, ' ', b, ' ', c)
-        console.log(this.estimateMap[a][b][c])
         this.wrongType = this.estimateMap[a][b][c]
+        this.wrongType.flag = true
+        // 在计算局部电量依据和压力依据之前，先记录estimate得到的deviceStateValue
+        let deviceStateValueTemp = this.deviceStateValue
+        console.log('before: ' + this.deviceStateValue)
         // 局部放电量判据 + 压力判据
         if (this.postForm.power > 20) {
           this.powerErrorType.flag = true
@@ -374,6 +376,25 @@
           }
         } else {
           this.pressureErrorType.flag = 0
+        }
+        console.log('after: ' + this.deviceStateValue)
+        if (this.deviceStateValue === 1) {
+          // 这种写法会改变 this.estimateMap指向内存的内容
+          // this.wrongType.type = '无'
+          // this.wrongType.description = ''
+          // this.wrongType.flag = true
+          this.wrongType = {
+            type: '无',
+            description: '',
+            flag: true
+          }
+        } else if (deviceStateValueTemp === 1) {
+          // 如果estimate计算的deviceStateValue 是正常，而压力和局部放电量导致异常，则wrongType不显示
+          this.wrongType = {
+            type: '',
+            description: '',
+            flag: false
+          }
         }
       }
     }
