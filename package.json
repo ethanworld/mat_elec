@@ -21,6 +21,12 @@
   "build": {
     "productName": "mat_elec",
     "appId": "com.example.yourapp",
+    "extraResources": [
+      {
+        "from":  "./static/",
+        "to":  "./"
+      }
+    ],
     "directories": {
       "output": "build"
     },

@@ -15,15 +15,19 @@ input[6] = 2617
 let initFlag = false
 
 function Matlab () {
-  var libpath = path.join(__dirname, '')
+  var libpath = path.join(__dirname, '../../../')
   // 这是由于默认的进程Path是二进制文件所在目录，即node.exe/electron.exe目录而不是DLL所在目录
-  if (process.env.NODE_ENV === 'production') {
-    libpath = ''
-  } else {
-    libpath = path.join(__dirname, '')
-  }
+  // if (process.env.NODE_ENV === 'production') {
+  //   libpath = ''
+  // } else {
+  //   libpath = path.join(__dirname, '')
+  // }
   process.env.PATH = `${process.env.PATH}${path.delimiter}${libpath}`
-  this.testLib = ffi.Library('DllTest.dll', {
+  const dll = 'DllTest.dll'
+  // if (dll !== undefined) {
+  //   throw new Error('Dynamic Linking Error: ' + libpath)
+  // }
+  this.testLib = ffi.Library(dll, {
     init: ['int', []],
     stop: [ref.types.void, []],
     compute: [ref.types.double, [DoubleArray]]

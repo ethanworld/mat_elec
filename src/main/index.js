@@ -1,7 +1,7 @@
 'use strict'
 
 import { app, BrowserWindow, ipcRenderer } from 'electron'
-var nativeEvent = require('./matlab/nativeEvent').nativeEvent
+var nativeEvent = require('../matlab/nativeEvent').nativeEvent
 
 /**
  * Set `__static` path to static files in production
